@@ -6,22 +6,6 @@
     <title>Ailoviu-Gestor de Proyectos de Diseño</title>
     <!-- Tailwind CSS para diseño fluido y premium -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontSize: {
-                    xs: ['0.875rem', { lineHeight: '1.25rem' }],
-                    sm: ['1rem', { lineHeight: '1.5rem' }],
-                    base: ['1.125rem', { lineHeight: '1.75rem' }],
-                    lg: ['1.25rem', { lineHeight: '1.875rem' }],
-                    xl: ['1.375rem', { lineHeight: '1.875rem' }],
-                    '2xl': ['1.625rem', { lineHeight: '2rem' }],
-                }
-            }
-        }
-    }
-</script>
     <!-- Google Fonts para tipografía editorial limpia -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,6 +40,15 @@
         .dragging {
             opacity: 0.5;
             border: 2px dashed #028090;
+        }
+        /* Ajustes de legibilidad para tipografía cómoda en VS Code / Mac */
+        #active-checklist-container label span, 
+        #active-checklist-container div span {
+            font-size: 14px !important; 
+            font-weight: 500;
+        }
+        #step-selector-container p {
+            font-size: 13px !important;
         }
     </style>
 </head>
@@ -275,21 +268,11 @@
             
             <!-- Controles Superiores -->
             <div class="flex flex-wrap items-center justify-end gap-3 w-full lg:w-auto">
-                <!-- Buscador rápido -->
+                <!-- Buscador rápido para tareas -->
                 <div class="relative w-full md:w-auto">
                     <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar concepto o tarea..." 
+                    <input type="text" id="searchInput" placeholder="Filtrar requerimientos de este paso..." 
                            class="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#028090] w-full md:w-64 bg-slate-50 transition-all">
-                </div>
-
-                <!-- Selector de Vistas -->
-                <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 w-full md:w-auto justify-center">
-                    <button onclick="switchView('chart')" id="btn-view-chart" class="flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5">
-                        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> ETAPAS
-                    </button>
-                    <button onclick="switchView('interactive')" id="btn-view-interactive" class="flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-900 shadow-sm transition-all flex items-center justify-center gap-1.5">
-                        <i data-lucide="check-square" class="w-3.5 h-3.5"></i> PROGRESO
-                    </button>
                 </div>
             </div>
         </div>
@@ -374,25 +357,8 @@
         <!-- Fondo opaco para cerrar menú móvil al tocar fuera -->
         <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 hidden lg:hidden"></div>
 
-        <!-- AREA DE TRABAJO (Panel Derecho/Centro) -->
+        <!-- AREA DE TRABAJO (Panel Derecho/Centro - Único Panel de Progreso) -->
         <div class="flex-1 flex flex-col min-w-0">
-            
-            <!-- VISTA DE DIAGRAMA COMPLETO (Renderizado Dinámicamente) -->
-            <div id="view-chart" class="transition-opacity duration-300 hidden">
-                <div class="overflow-x-auto pb-6 custom-scrollbar bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-xs">
-                    <!-- Contenedor dinámico de la matriz de etapas -->
-                    <div id="chart-matrix-container" class="px-2">
-                        <!-- Estructura generada mediante JavaScript basándose en los pasos activos -->
-                    </div>
-                </div>
-                
-                <!-- Mensaje flotante de interacción -->
-                <div class="text-center mt-4 text-xs text-slate-400 italic">
-                    💡 Consejo: Desplázate horizontalmente para ver las etapas personalizadas de este proyecto.
-                </div>
-            </div>
-
-            <!-- VISTA INTERACTIVA (WORKFLOW / CHECKLIST) -->
             <div id="view-interactive" class="transition-opacity duration-300">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
@@ -478,7 +444,6 @@
 
                 </div>
             </div>
-
         </div>
 
     </div>
@@ -686,7 +651,7 @@
             }
         };
 
-        // Declaración explícita para evitar ReferenceError
+        // Declaración explícita del estado de sincronización visual
         window.updateCloudIndicator = function(status) {
             const cloudStatusDot = document.getElementById('cloud-status-dot');
             const cloudStatusText = document.getElementById('cloud-status-text');
@@ -722,7 +687,6 @@
 
         // Variables de estado local
         let currentUser = null;
-        let activeView = 'interactive';
         let activeStepId = 1;
         let projects = [];
         let activeProject = null;
@@ -735,9 +699,6 @@
         // Elementos del DOM
         const toastEl = document.getElementById('toast');
         const toastMessageEl = document.getElementById('toast-message');
-        const cloudStatusBadge = document.getElementById('cloud-status-badge');
-        const cloudStatusDot = document.getElementById('cloud-status-dot');
-        const cloudStatusText = document.getElementById('cloud-status-text');
         const projectsListEl = document.getElementById('projects-list');
         const activeProjectNameEl = document.getElementById('active-project-name');
 
@@ -1018,12 +979,8 @@
                         activeProject = updated;
                         activeProjectNameEl.innerText = activeProject.name;
                         updateChecklistProgressUI();
-                        if (activeView === 'interactive') {
-                            renderStepSelectors();
-                            selectStep(activeStepId);
-                        } else {
-                            renderChartView();
-                        }
+                        renderStepSelectors();
+                        selectStep(activeStepId);
                     }
                 }
                 window.updateCloudIndicator('synced');
@@ -1120,7 +1077,7 @@
                         try {
                             const projectDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'projects', id);
                             await deleteDoc(projectDocRef);
-                            showToast(`Proyecto "${name}" eliminado de la nube`, "success");
+                            showToast(`Proyecto "${name}" de la nube eliminado`, "success");
                         } catch (err) {
                             console.error("Error eliminando de Firebase:", err);
                             showToast("No se pudo completar la operación.", "error");
@@ -1137,11 +1094,7 @@
                             activeProject = null;
                             activeProjectNameEl.innerText = "Ningún proyecto activo";
                             updateChecklistProgressUI();
-                            if (activeView === 'interactive') {
-                                renderStepSelectors();
-                            } else {
-                                renderChartView();
-                            }
+                            renderStepSelectors();
                         }
                         renderProjectsList();
                     }
@@ -1164,12 +1117,8 @@
                     }
                 }
 
-                if (activeView === 'interactive') {
-                    renderStepSelectors();
-                    selectStep(activeStepId);
-                } else {
-                    renderChartView();
-                }
+                renderStepSelectors();
+                selectStep(activeStepId);
                 renderProjectsList();
             }
         };
@@ -1261,12 +1210,8 @@
                         step.tasks.forEach(t => t.checked = false);
                     });
                     updateChecklistProgressUI();
-                    if (activeView === 'interactive') {
-                        renderStepSelectors();
-                        selectStep(activeStepId);
-                    } else {
-                        renderChartView();
-                    }
+                    renderStepSelectors();
+                    selectStep(activeStepId);
                     await saveActiveProjectState();
                     showToast("Progreso del proyecto reiniciado", "success");
                 }
@@ -1390,6 +1335,8 @@
             }
 
             updateStepStatusHeader(step.id);
+            // Limpiar buscador al cambiar de paso
+            document.getElementById('searchInput').value = "";
             if (window.lucide) window.lucide.createIcons();
         };
 
@@ -1748,221 +1695,32 @@
             renderStepSelectors();
             selectStep(activeStepId);
             await saveActiveProjectState();
-            showToast("Orden de pasos actualizado", "success");
+            showToast("Orden de pasos de metodología actualizado", "success");
         };
 
-        // Agrupa pasos consecutivos que comparten un mismo campo para representarlos con spans correctos
-        function getConsecutiveGroups(steps, key) {
-            const groups = [];
-            if (!steps || steps.length === 0) return groups;
-            
-            let currentVal = steps[0][key] || "General";
-            let startIdx = 0;
-            let count = 1;
-            
-            for (let i = 1; i < steps.length; i++) {
-                const val = steps[i][key] || "General";
-                if (val === currentVal) {
-                    count++;
-                } else {
-                    groups.push({ name: currentVal, span: count, startIndex: startIdx });
-                    currentVal = val;
-                    startIdx = i;
-                    count = 1;
-                }
-            }
-            groups.push({ name: currentVal, span: count, startIndex: startIdx });
-            return groups;
-        }
-
-        // Genera y dibuja la matriz visual de etapas basándose en los pasos editables del proyecto activo
-        window.renderChartView = () => {
-            const container = document.getElementById('chart-matrix-container');
-            container.innerHTML = "";
-
-            if (!activeProject || activeProject.steps.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 text-slate-400 text-sm italic">
-                        No hay pasos creados en este proyecto. Ve a la pestaña "PROGRESO" para añadir pasos y tareas.
-                    </div>
-                `;
-                return;
-            }
-
-            const steps = activeProject.steps;
-            const totalColumns = steps.length;
-
-            // Creación de la estructura interna fluida por CSS Grid dinámico
-            const gridStyle = `display: grid; grid-template-columns: repeat(${totalColumns}, minmax(180px, 1fr)); gap: 1rem;`;
-
-            // 1. Brackets superiores (Fases de entrega)
-            const topGroups = getConsecutiveGroups(steps, 'groupTop');
-            let topBracketsHTML = `<div class="mb-3 text-center" style="${gridStyle}">`;
-            topGroups.forEach(g => {
-                topBracketsHTML += `
-                    <div class="relative" style="grid-column: span ${g.span};">
-                        <div class="text-[#A467C7] text-[10px] font-extrabold tracking-widest uppercase py-1 border-t-2 border-x-2 border-[#A467C7] rounded-t-md mx-3 truncate" title="${g.name}">
-                            ${g.name}
-                        </div>
-                    </div>
-                `;
-            });
-            topBracketsHTML += `</div>`;
-
-            // 2. Círculos numéricos de los pasos
-            let stepNumbersHTML = `<div class="mb-4" style="${gridStyle}">`;
-            steps.forEach((step, idx) => {
-                stepNumbersHTML += `
-                    <div class="flex justify-center">
-                        <div class="w-12 h-12 rounded-full bg-[#0077b6] text-white flex items-center justify-center font-bold text-xl shadow-md">
-                            ${idx + 1}
-                        </div>
-                    </div>
-                `;
-            });
-            stepNumbersHTML += `</div>`;
-
-            // 3. Títulos de las fases en burbujas celestes
-            let stepTitlesHTML = `<div class="mb-6" style="${gridStyle}">`;
-            steps.forEach(step => {
-                stepTitlesHTML += `
-                    <div class="px-1 text-center">
-                        <span class="block bg-sky-50 text-[#0077b6] text-[9px] font-extrabold py-2 px-1 rounded uppercase tracking-wider leading-relaxed border border-sky-100 truncate" title="${step.title}">
-                            ${step.title}
-                        </span>
-                    </div>
-                `;
-            });
-            stepTitlesHTML += `</div>`;
-
-            // 4. Listados de tareas detalladas por columna
-            let stepTasksHTML = `<div class="border-r border-l border-slate-200 items-stretch" style="${gridStyle}">`;
-            steps.forEach((step, stepIdx) => {
-                let listItems = "";
-                if (step.tasks.length === 0) {
-                    listItems = `<li class="text-slate-400 italic text-[10px] list-none">Sin requerimientos</li>`;
-                } else {
-                    step.tasks.forEach(task => {
-                        listItems += `
-                            <li class="flex gap-1.5 items-start">
-                                <span class="text-emerald-500 font-bold shrink-0">${task.checked ? '✓' : '•'}</span>
-                                <span class="${task.checked ? 'line-through text-slate-400 opacity-60' : ''}">${task.text}</span>
-                            </li>
-                        `;
-                    });
-                }
-                
-                stepTasksHTML += `
-                    <div class="p-3 text-[10px] text-slate-700 leading-relaxed space-y-2 border-r border-slate-200 h-full step-card ${stepIdx === steps.length - 1 ? 'border-r-0' : ''}" data-step="${step.id}">
-                        <ul class="space-y-2 pl-1 list-none">
-                            ${listItems}
-                        </ul>
-                    </div>
-                `;
-            });
-            stepTasksHTML += `</div>`;
-
-            // 5. Bloques de Metas (Verdes)
-            let stepGoalsHTML = `<div class="mt-4" style="${gridStyle}">`;
-            steps.forEach(step => {
-                stepGoalsHTML += `
-                    <div class="bg-[#2BE562] text-slate-950 p-2.5 rounded-md shadow-xs text-center flex flex-col justify-between">
-                        <p class="text-[9px] uppercase tracking-wider font-extrabold opacity-85">Meta clave:</p>
-                        <p class="text-[10px] font-bold mt-1 text-slate-900 leading-normal line-clamp-3" title="${step.meta}">
-                            ${step.meta || "Bases de la fase."}
-                        </p>
-                    </div>
-                `;
-            });
-            stepGoalsHTML += `</div>`;
-
-            // 6. Agrupaciones de pié (Fase de diseño)
-            const bottomGroups = getConsecutiveGroups(steps, 'groupBottom');
-            let bottomFooterHTML = `<div class="mt-6 items-center" style="${gridStyle}">`;
-            bottomGroups.forEach(g => {
-                bottomFooterHTML += `
-                    <div style="grid-column: span ${g.span};">
-                        <div class="flex items-center justify-between px-3 border-b-2 border-slate-700 pb-1.5 mx-2">
-                            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-700"></i>
-                            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-700 truncate">${g.name}</span>
-                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-700"></i>
-                        </div>
-                    </div>
-                `;
-            });
-            bottomFooterHTML += `</div>`;
-
-            // Unir y pintar en pantalla
-            container.innerHTML = `
-                <div class="min-w-[1450px]">
-                    ${topBracketsHTML}
-                    ${stepNumbersHTML}
-                    ${stepTitlesHTML}
-                    ${stepTasksHTML}
-                    ${stepGoalsHTML}
-                    ${bottomFooterHTML}
-                </div>
-            `;
-            if (window.lucide) window.lucide.createIcons();
-        };
-
-        // Alternar visualizaciones generales (Matriz vs Checklist)
-        window.switchView = (viewName) => {
-            activeView = viewName;
-            const chartView = document.getElementById('view-chart');
-            const interactiveView = document.getElementById('view-interactive');
-            
-            const btnChart = document.getElementById('btn-view-chart');
-            const btnInteractive = document.getElementById('btn-view-interactive');
-
-            if (viewName === 'chart') {
-                chartView.classList.remove('hidden');
-                interactiveView.classList.add('hidden');
-                
-                btnChart.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-900 shadow-sm transition-all flex items-center justify-center gap-1.5";
-                btnInteractive.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5";
-                
-                renderChartView();
-            } else {
-                chartView.classList.add('hidden');
-                interactiveView.classList.remove('hidden');
-                
-                btnChart.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5";
-                btnInteractive.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-900 shadow-sm transition-all flex items-center justify-center gap-1.5";
-                
-                renderStepSelectors();
-                selectStep(activeStepId);
-            }
-        };
-
-        // Configuración de búsqueda inteligente sobre la matriz o el panel
+        // Configuración de búsqueda inteligente sobre las tareas de la vista activa
         function setupSearch() {
             const input = document.getElementById('searchInput');
             if (!input) return;
             input.addEventListener('input', function(e) {
                 const query = e.target.value.toLowerCase().trim();
-                const stepCards = document.querySelectorAll('.step-card');
+                const container = document.getElementById('active-checklist-container');
+                const taskLabels = container.children;
 
-                if (query === "") {
-                    stepCards.forEach(card => {
-                        card.classList.remove('bg-yellow-50/70', 'ring-2', 'ring-yellow-400', 'opacity-40');
-                        card.classList.add('opacity-100');
-                    });
-                    return;
-                }
-
-                stepCards.forEach(card => {
-                    const text = card.innerText.toLowerCase();
+                for (let label of taskLabels) {
+                    const text = label.innerText.toLowerCase();
                     const matched = text.includes(query);
 
-                    if (matched) {
-                        card.classList.add('bg-yellow-50/70', 'ring-2', 'ring-yellow-400');
-                        card.classList.remove('opacity-40');
+                    if (query === "") {
+                        label.style.display = '';
                     } else {
-                        card.classList.remove('bg-yellow-50/70', 'ring-2', 'ring-yellow-400');
-                        card.classList.add('opacity-40');
+                        if (matched) {
+                            label.style.display = '';
+                        } else {
+                            label.style.display = 'none';
+                        }
                     }
-                });
+                }
             });
         }
 
@@ -2069,9 +1827,6 @@
             if (window.lucide) window.lucide.createIcons();
             window.initAppStorage();
             setupSearch();
-            
-            // Forzar vista por defecto interactiva y limpia al iniciar
-            switchView('interactive');
         };
 
     </script>
