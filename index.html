@@ -36,19 +36,18 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
-        /* Efecto de arrastre visual */
-        .dragging {
-            opacity: 0.5;
-            border: 2px dashed #028090;
-        }
-        /* Ajustes de legibilidad para tipografía cómoda en VS Code / Mac */
+        /* Ajustes de legibilidad para tipografía cómoda en VS Code / Mac con forzado de tamaño */
         #active-checklist-container label span, 
         #active-checklist-container div span {
-            font-size: 14px !important; 
-            font-weight: 500;
+            font-size: 15px !important; 
+            font-weight: 500 !important;
         }
         #step-selector-container p {
-            font-size: 13px !important;
+            font-size: 14px !important;
+        }
+        /* Forzado de tamaño para los ítems de tareas técnicas */
+        #active-checklist-container span {
+            font-size: 15px !important;
         }
     </style>
 </head>
@@ -1302,8 +1301,7 @@
             } else {
                 step.tasks.forEach((task, index) => {
                     const label = document.createElement('div');
-                    label.className = `flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-move ${task.checked ? 'bg-emerald-50/40 border-emerald-100 text-slate-500' : 'bg-slate-50/50 border-slate-150 hover:bg-slate-100/70 text-slate-800'}`;
-                    label.setAttribute('draggable', 'true');
+                    label.className = `flex items-center justify-between p-2.5 rounded-lg border transition-all ${task.checked ? 'bg-emerald-50/40 border-emerald-100 text-slate-500' : 'bg-slate-50/50 border-slate-150 hover:bg-slate-100/70 text-slate-800'}`;
                     label.setAttribute('data-task-id', task.id);
                     
                     label.innerHTML = `
@@ -1330,8 +1328,6 @@
                     `;
                     checklistContainer.appendChild(label);
                 });
-
-                setupDragAndDrop(checklistContainer, step.id);
             }
 
             updateStepStatusHeader(step.id);
@@ -1339,66 +1335,6 @@
             document.getElementById('searchInput').value = "";
             if (window.lucide) window.lucide.createIcons();
         };
-
-        // Soporte de Drag and Drop fluido para arrastrar y ordenar tareas
-        function setupDragAndDrop(container, stepId) {
-            let draggedItem = null;
-
-            container.addEventListener('dragstart', (e) => {
-                draggedItem = e.target.closest('[draggable="true"]');
-                if (draggedItem) {
-                    draggedItem.classList.add('dragging');
-                }
-            });
-
-            container.addEventListener('dragend', async () => {
-                if (draggedItem) {
-                    draggedItem.classList.remove('dragging');
-                    
-                    // Recalcular el orden basándose en el DOM
-                    const domElements = [...container.querySelectorAll('[draggable="true"]')];
-                    const step = activeProject.steps.find(s => s.id === stepId);
-                    if (step) {
-                        const newTasksOrder = [];
-                        domElements.forEach(el => {
-                            const taskId = el.getAttribute('data-task-id');
-                            const foundTask = step.tasks.find(t => t.id === taskId);
-                            if (foundTask) {
-                                newTasksOrder.push(foundTask);
-                            }
-                        });
-                        step.tasks = newTasksOrder;
-                        await saveActiveProjectState();
-                        updateChecklistProgressUI();
-                    }
-                }
-                draggedItem = null;
-            });
-
-            container.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                const afterElement = getDragAfterElement(container, e.clientY);
-                if (afterElement == null) {
-                    container.appendChild(draggedItem);
-                } else {
-                    container.insertBefore(draggedItem, afterElement);
-                }
-            });
-        }
-
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
-
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
 
         function getCompletedTasksCount(stepId) {
             if (!activeProject) return 0;
