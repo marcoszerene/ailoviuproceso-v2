@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ailoviu-Gestor de Proyectos de Diseño</title>
+    <!-- Tailwind CSS para diseño fluido y premium -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts para tipografía editorial limpia -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&family=Playfair+Display:ital,wght=0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Lucide Icons para componentes visuales -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Fondo slate ultra limpio */
+        }
+        .serif-title {
+            font-family: 'Playfair Display', serif;
+        }
+        /* Personalización de barra de desplazamiento para la vista horizontal */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Efecto de arrastre visual */
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed #028090;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Notificación Toast Personalizada (Reemplaza a los alerts nativos) -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-800 max-w-sm">
+        <div id="toast-icon-container" class="p-1 rounded-lg bg-[#2BE562] text-slate-950">
+            <i data-lucide="cloud-lightning" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1">
+            <p id="toast-message" class="text-xs font-semibold">Cargando la aplicación...</p>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación Personalizado (Reemplaza confirm() nativo de forma estética) -->
+    <div id="custom-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200" id="confirm-modal-box">
+            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900" id="confirm-modal-title">¿Estás seguro?</h3>
+            <p class="text-xs text-slate-500 mt-2 leading-relaxed" id="confirm-modal-message">Esta acción se reflejará permanentemente.</p>
+            <div class="flex gap-3 mt-6">
+                <button id="confirm-modal-cancel" class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button id="confirm-modal-action" class="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Personalizado para Renombrar Proyectos -->
+    <div id="rename-project-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200" id="rename-modal-box">
+            <div class="w-12 h-12 rounded-full bg-sky-50 text-[#028090] flex items-center justify-center mb-4">
+                <i data-lucide="pencil" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900" id="rename-modal-title">Cambiar nombre del proyecto</h3>
+            <p class="text-xs text-slate-500 mt-2 leading-relaxed">Ingresa el nuevo nombre o descripción para identificar este espacio de trabajo.</p>
+            
+            <div class="mt-4">
+                <input type="text" id="rename-modal-input" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all font-semibold">
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button id="rename-modal-cancel" class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button id="rename-modal-action" class="flex-1 px-4 py-2 bg-[#028090] hover:bg-[#016875] text-white text-xs font-semibold rounded-lg transition-colors">
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar y Crear Pasos de la Metodología -->
+    <div id="step-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200" id="step-modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-sky-50 text-[#028090] rounded-lg">
+                        <i data-lucide="layers" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900" id="step-modal-title">Editar Paso de la Metodología</h3>
+                        <p class="text-[10px] text-slate-400">Ajusta nombres de procesos y fases de entrega.</p>
+                    </div>
+                </div>
+                <button onclick="closeStepModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nombre del Paso:</label>
+                    <input type="text" id="stepModalTitle" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all font-semibold">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Meta Clave del Paso:</label>
+                    <textarea id="stepModalMeta" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fase Superior (Top):</label>
+                        <input type="text" id="stepModalGroupTop" placeholder="ej. Descubrir, Definir" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Secuencia Inferior (Bottom):</label>
+                        <input type="text" id="stepModalGroupBottom" placeholder="ej. Comprender, Idear, Ejecutar" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all">
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeStepModal()" class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                        Cancelar
+                    </button>
+                    <button id="step-modal-save" class="flex-1 px-4 py-2 bg-[#028090] hover:bg-[#016875] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm">
+                        Guardar Paso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Tarea Individual -->
+    <div id="task-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200" id="task-modal-box">
+            <div class="w-12 h-12 rounded-full bg-teal-50 text-[#028090] flex items-center justify-center mb-4">
+                <i data-lucide="check-square" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">Editar Tarea o Requerimiento</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">Modifica el texto o criterio técnico de aceptación.</p>
+            
+            <textarea id="taskModalInput" rows="3" class="w-full p-3 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all font-semibold"></textarea>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeTaskModal()" class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button id="task-modal-save" class="flex-1 px-4 py-2 bg-[#028090] hover:bg-[#016875] text-white text-xs font-semibold rounded-lg transition-colors">
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ajustes de Nube Personalizada (Conecta a Firebase de forma visual) -->
+    <div id="cloud-config-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-xs hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200" id="cloud-modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <i data-lucide="cloud" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">Configurar Nube Personal</h3>
+                        <p class="text-[10px] text-slate-400">Accede a tus datos desde cualquier dispositivo.</p>
+                    </div>
+                </div>
+                <button onclick="toggleCloudModal(false)" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-indigo-50/80 border border-indigo-100 p-3.5 rounded-xl space-y-1.5 text-[11px] text-indigo-950 leading-relaxed">
+                    <p class="font-bold">¿Cómo sincronizar desde cualquier parte?</p>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Crea un proyecto gratis en <a href="https://console.firebase.google.com" target="_blank" class="underline font-bold text-indigo-600 hover:text-indigo-800">Firebase Console</a>.</li>
+                        <li>Crea una base de datos <strong>Firestore Database</strong> en modo de prueba.</li>
+                        <li>Agrega una aplicación web y copia la variable de configuración <span class="font-semibold italic">firebaseConfig</span>.</li>
+                        <li>Pega ese objeto de configuración aquí abajo.</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Objeto JSON de Firebase Config:</label>
+                    <textarea id="firebaseConfigInput" rows="6" placeholder='{
+  "apiKey": "AIzaSyA1...",
+  "authDomain": "tu-proyecto.firebaseapp.com",
+  "projectId": "tu-proyecto",
+  "storageBucket": "tu-proyecto.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:1234:web:abcd"
+}' class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#028090] focus:bg-white transition-all"></textarea>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="clearCustomCloudConfig()" class="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1">
+                        <i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Desconectar Nube
+                    </button>
+                    <button onclick="saveCustomCloudConfig()" class="flex-1 px-4 py-2 bg-[#028090] hover:bg-[#016875] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1">
+                        <i data-lucide="save" class="w-3.5 h-3.5"></i> Guardar y Conectar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Encabezado Principal -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 md:px-6 py-4 shadow-sm">
+        <div class="max-w-[1700px] mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
+            
+            <div class="flex items-center gap-4 w-full lg:w-auto">
+                <!-- Botón móvil para abrir lista de proyectos -->
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <div>
+                    <span class="text-xs font-semibold tracking-wider text-[#028090] uppercase block flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-[#028090]"></span> AILOVIU DESIGN
+                    </span>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+                        <i data-lucide="map" class="text-[#028090] w-6 h-6"></i>
+                        GESTOR DE PROYECTOS
+                    </h1>
+                </div>
+                <!-- Indicador de Sincronización en la Nube / Local -->
+                <div class="ml-auto lg:ml-4 flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-600" id="cloud-status-badge">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500" id="cloud-status-dot"></span>
+                        </span>
+                        <span id="cloud-status-text">Conectando...</span>
+                    </div>
+                    <!-- Botón de configuración de nube personal -->
+                    <button onclick="toggleCloudModal(true)" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors" title="Configurar nube personal">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Controles Superiores -->
+            <div class="flex flex-wrap items-center justify-end gap-3 w-full lg:w-auto">
+                <!-- Buscador rápido -->
+                <div class="relative w-full md:w-auto">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar concepto o tarea..." 
+                           class="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#028090] w-full md:w-64 bg-slate-50 transition-all">
+                </div>
+
+                <!-- Selector de Vistas -->
+                <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 w-full md:w-auto justify-center">
+                    <button onclick="switchView('chart')" id="btn-view-chart" class="flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5">
+                        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> ETAPAS
+                    </button>
+                    <button onclick="switchView('interactive')" id="btn-view-interactive" class="flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-900 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <i data-lucide="check-square" class="w-3.5 h-3.5"></i> PROGRESO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barra de progreso colaborativa -->
+    <div id="progress-bar-container" class="bg-[#eef5f6] border-b border-slate-200 py-2.5 px-4 md:px-6 transition-all">
+        <div class="max-w-[1700px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="users" class="text-[#028090] w-4 h-4"></i>
+                <span class="text-xs font-bold text-[#028090] uppercase tracking-wider">Espacio de Trabajo:</span>
+                <div class="flex items-center gap-1">
+                    <span id="active-project-name" class="text-sm font-semibold text-slate-800 bg-white px-2.5 py-0.5 rounded-l border border-r-0 border-slate-200 shadow-xs">Cargando proyecto...</span>
+                    <button onclick="triggerActiveProjectRename()" class="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200 bg-white border border-slate-200 rounded-r shadow-xs transition-colors flex items-center justify-center" title="Editar nombre del proyecto">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+                <div class="flex items-center gap-2 flex-1 sm:flex-initial">
+                    <span id="progress-percent" class="text-xs font-extrabold text-slate-700 min-w-[28px] text-right">0%</span>
+                    <div class="w-32 md:w-48 bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div id="progress-fill" class="bg-[#028090] h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <button onclick="resetActiveProjectChecklist()" class="text-xs text-red-600 hover:text-red-800 font-bold flex items-center gap-1 transition-colors">
+                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal con Distribución de Panel Lateral -->
+    <div class="flex-grow flex flex-col lg:flex-row max-w-[1750px] w-full mx-auto p-4 md:p-6 gap-6">
+        
+        <!-- SIDEBAR DE GESTIÓN DE PROYECTOS (Panel Izquierdo) -->
+        <aside id="project-sidebar" class="fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-slate-200 p-5 transform -translate-x-full transition-transform duration-300 lg:relative lg:transform-none lg:z-0 lg:w-72 lg:p-0 lg:bg-transparent lg:border-r-0 flex flex-col justify-between shrink-0">
+            <div class="space-y-6">
+                <!-- Título Panel -->
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3 lg:border-b-0 lg:pb-0">
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="folder-open" class="w-4 h-4 text-slate-400"></i> Proyectos Activos
+                    </h2>
+                    <button onclick="toggleSidebar()" class="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Botón de Añadir Nuevo Proyecto -->
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <p class="text-[11px] text-slate-500 leading-normal">Agrega un nuevo cliente o proyecto:</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="newProjectName" placeholder="Nombre del proyecto..." 
+                               class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-[#028090]">
+                        <button onclick="createNewProject()" class="bg-[#028090] text-white p-2 rounded-lg hover:bg-[#016875] transition-colors flex items-center justify-center">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Proyectos Dinámicos -->
+                <div id="projects-list" class="space-y-2 max-h-[350px] lg:max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-[#028090]"></i>
+                        Cargando base de datos...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banner Informativo de Colaboración -->
+            <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl mt-6" id="collaboration-banner">
+                <div class="flex gap-2 items-start">
+                    <i data-lucide="sparkles" class="text-indigo-600 w-4 h-4 shrink-0 mt-0.5 animate-pulse"></i>
+                    <p class="text-[11px] text-indigo-900 leading-relaxed font-medium" id="collaboration-banner-text">
+                        <strong>¡Modo Local Activo!</strong> Tus cambios se guardan en este navegador de forma local. Conéctate a la nube personal para sincronizar.
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Fondo opaco para cerrar menú móvil al tocar fuera -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 hidden lg:hidden"></div>
+
+        <!-- AREA DE TRABAJO (Panel Derecho/Centro) -->
+        <div class="flex-1 flex flex-col min-w-0">
+            
+            <!-- VISTA DE DIAGRAMA COMPLETO (Renderizado Dinámicamente) -->
+            <div id="view-chart" class="transition-opacity duration-300 hidden">
+                <div class="overflow-x-auto pb-6 custom-scrollbar bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-xs">
+                    <!-- Contenedor dinámico de la matriz de etapas -->
+                    <div id="chart-matrix-container" class="px-2">
+                        <!-- Estructura generada mediante JavaScript basándose en los pasos activos -->
+                    </div>
+                </div>
+                
+                <!-- Mensaje flotante de interacción -->
+                <div class="text-center mt-4 text-xs text-slate-400 italic">
+                    💡 Consejo: Desplázate horizontalmente para ver las etapas personalizadas de este proyecto.
+                </div>
+            </div>
+
+            <!-- VISTA INTERACTIVA (WORKFLOW / CHECKLIST) -->
+            <div id="view-interactive" class="transition-opacity duration-300">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Navegador de Pasos Izquierda -->
+                    <div class="lg:col-span-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pasos de la Metodología</h3>
+                            <button onclick="openStepModal(null)" class="text-[10px] font-bold text-[#028090] hover:text-[#016875] flex items-center gap-1 transition-colors px-2 py-1 bg-[#eef5f6] rounded-md border border-[#028090]/10">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Añadir Paso
+                            </button>
+                        </div>
+                        <div id="step-selector-container" class="space-y-1">
+                            <!-- Generado dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Detalles de Tareas y Marcaje Derecha -->
+                    <div class="lg:col-span-8 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[480px]">
+                        <div>
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-4">
+                                <div class="flex items-center gap-3">
+                                    <span id="active-step-num" class="w-12 h-12 bg-[#0077b6] text-white flex items-center justify-center font-extrabold text-xl rounded-full">1</span>
+                                    <div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <h2 id="active-step-title" class="text-lg font-bold text-slate-900 leading-tight">Cargando paso...</h2>
+                                            <!-- Botones para modificar el paso activo -->
+                                            <div class="flex gap-1 ml-2">
+                                                <button onclick="triggerActiveStepEdit()" class="p-1 rounded text-slate-400 hover:text-[#028090] hover:bg-slate-100 transition-all" title="Editar configuración del Paso">
+                                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                                <button onclick="triggerActiveStepDelete()" class="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="Eliminar este Paso completo">
+                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p id="active-step-subtitle" class="text-xs text-slate-500 mt-0.5">---</p>
+                                    </div>
+                                </div>
+                                <span id="active-step-status" class="self-start sm:self-auto px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full border border-amber-200 tracking-wider uppercase">Cargando...</span>
+                            </div>
+
+                            <!-- Lista de actividades en formato Checkbox -->
+                            <div class="border-t border-slate-100 py-4 my-4">
+                                <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+                                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Requerimientos y Tareas Técnicas</h4>
+                                    <!-- Reordenamiento y edición del paso actual -->
+                                    <div class="flex gap-1.5 items-center bg-slate-50 px-2 py-1 rounded-md border border-slate-150">
+                                        <span class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mr-1">Orden del Paso:</span>
+                                        <button onclick="moveActiveStep('up')" class="p-1 text-slate-400 hover:text-[#028090] hover:bg-slate-200 rounded transition-all flex items-center justify-center" title="Subir orden del Paso">
+                                            <i data-lucide="arrow-up" class="w-3 h-3"></i>
+                                        </button>
+                                        <button onclick="moveActiveStep('down')" class="p-1 text-slate-400 hover:text-[#028090] hover:bg-slate-200 rounded transition-all flex items-center justify-center" title="Bajar orden del Paso">
+                                            <i data-lucide="arrow-down" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="active-checklist-container" class="space-y-2.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                                    <!-- Checklists dinámicos -->
+                                </div>
+
+                                <!-- Formulario para Añadir Requerimiento/Tarea al Paso -->
+                                <div class="mt-4 flex gap-2">
+                                    <input type="text" id="newTaskInput" placeholder="Escribe un nuevo requerimiento..." class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-[#028090] placeholder:text-slate-400">
+                                    <button onclick="addNewTaskToActiveStep()" class="bg-[#028090] hover:bg-[#016875] text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Añadir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cuadro de Meta del Paso Seleccionado -->
+                        <div class="bg-[#f0f9eb] border border-[#d2ecb8] rounded-xl p-4 flex items-center gap-3 mt-4">
+                            <div class="p-2 bg-[#2BE562] rounded-lg text-slate-950 font-bold shrink-0">
+                                <i data-lucide="target" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-extrabold uppercase text-emerald-800 block tracking-wider">Meta Clave de la Fase:</span>
+                                <p id="active-step-goal" class="text-xs font-bold text-slate-800 mt-0.5">Definir bases conceptuales y requerimientos técnicos iniciales.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 shrink-0">
+        <div class="max-w-[1700px] mx-auto px-6 text-center text-slate-400 text-xs space-y-2">
+            <p>Ailoviu Design® 2026 Proceso de Gestión de Diseño Personalizado.</p>
+        </div>
+    </footer>
+
+    <!-- LÓGICA DE INICIALIZACIÓN E INTEGRACIÓN CON LA NUBE (FIRESTORE) -->
+    <script type="module">
+        // Importación SDK Modular de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, setDoc, onSnapshot, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Estructura de la Metodología Oficial (Plantilla Completa para Nuevos Proyectos)
+        const DEFAULT_DESIGN_STEPS = [
+            {
+                id: 1,
+                title: "Inicio del Proyecto",
+                meta: "Establecer parámetros básicos del proyecto y selección del diseñador idóneo.",
+                groupTop: "Descubrir",
+                groupBottom: "Comprender",
+                color: "#028090",
+                tasks: [
+                    "El cliente identifica una necesidad o meta comercial.",
+                    "El cliente desarrolla un presupuesto preliminar razonable.",
+                    "El cliente desarrolla un cronograma o plazos preliminares.",
+                    "El cliente crea un informe creativo o brief inicial.",
+                    "El cliente identifica estudios o diseñadores potenciales.",
+                    "Reunión de discusión preliminar y revisión de portafolio.",
+                    "El cliente emite una RFP (Solicitud de propuesta de servicios).",
+                    "Los diseñadores analizan la RFP y presentan su propuesta económica y de trabajo.",
+                    "El cliente acepta la propuesta y confirma al diseñador.",
+                    "El diseñador solicita un pago de depósito antes de iniciar el proyecto."
+                ]
+            },
+            {
+                id: 2,
+                title: "Orientación / Investigación",
+                meta: "Clarificar objetivos principales, identificar oportunidades y establecer requisitos base.",
+                groupTop: "Descubrir",
+                groupBottom: "Comprender",
+                color: "#028090",
+                tasks: [
+                    "El cliente proporciona cualquier información y material de respaldo relevante.",
+                    "El diseñador guía al cliente a través de sesiones de briefing creativo.",
+                    "Investigar el ecosistema competitivo del cliente.",
+                    "Mapear detalladamente al público objetivo.",
+                    "Ejecutar estudios de mercado si el alcance lo requiere.",
+                    "Realizar observaciones, entrevistas, cuestionarios o auditorías con usuarios.",
+                    "Confirmar cualquier parámetro técnico o limitaciones de funcionalidad.",
+                    "Confirmar la evaluación de necesidades y formular el problema de diseño."
+                ]
+            },
+            {
+                id: 3,
+                title: "Estrategia",
+                meta: "Diseñar la estrategia general de marca/producto, enfoque estético y confirmar entregables.",
+                groupTop: "Definir",
+                groupBottom: "Idear",
+                color: "#028090",
+                tasks: [
+                    "Analizar y sintetizar la investigación y la información recopiladas.",
+                    "Desarrollar los criterios de diseño.",
+                    "Desarrollar los criterios de funcionalidad del producto.",
+                    "Desarrollar el plan de canales de entrega de medios.",
+                    "Presentar todo lo anterior para comentarios o aprobación del cliente.",
+                    "Desarrollar y articular una estrategia clara para el diseño.",
+                    "Desarrollar planes preliminares: arquitectura de información, mapas de paginación y/o wireframes.",
+                    "Presentar todo lo anterior para comentarios o aprobación formal del cliente."
+                ]
+            },
+            {
+                id: 4,
+                title: "Exploración",
+                meta: "Generar conceptos preliminares de diseño creativo y evaluar la dirección conceptual.",
+                groupTop: "Definir",
+                groupBottom: "Idear",
+                color: "#028090",
+                tasks: [
+                    "Con base en la estrategia aprobada, desarrollar conceptos de diseño preliminares.",
+                    "Bocetos rápidos, miniaturas y esquemas (Roughs).",
+                    "Guiones gráficos (Storyboards) o diagramas de flujo.",
+                    "Crear tableros de inspiración (Moodboards).",
+                    "Definir directrices de propuesta estética (Look & Feel).",
+                    "Modelos de validación estructural o pruebas de concepto (POP).",
+                    "Presentación de alternativas conceptuales preliminares al cliente para su validación.",
+                    "Seleccionar en conjunto una o dos ideas principales para desarrollo detallado."
+                ]
+            },
+            {
+                id: 5,
+                title: "Desarrollo",
+                meta: "Desarrollar en detalle las ideas elegidas y seleccionar la dirección definitiva.",
+                groupTop: "Desarrollar",
+                groupBottom: "Idear",
+                color: "#0077b6",
+                tasks: [
+                    "Diseñar representaciones de los conceptos de diseño más definidas y precisas.",
+                    "Elaborar composiciones completas (Layouts detallados/Comps).",
+                    "Desarrollar animáticas conceptuales o prototipos preliminares.",
+                    "Presentar maquetaciones de páginas o pliegos típicos (editorial).",
+                    "Integrar textos y mensajes provisionales (placeholders).",
+                    "Utilizar imágenes o audios de muestra funcionales para evaluación.",
+                    "Presentar el diseño estructurado al cliente para comentarios finales.",
+                    "Recibir confirmación escrita de la dirección de diseño seleccionada para refinamiento."
+                ]
+            },
+            {
+                id: 6,
+                title: "Refinamiento",
+                meta: "Realizar ajustes precisos de los elementos estéticos y asegurar la usabilidad del producto.",
+                groupTop: "Desarrollar",
+                groupBottom: "Ejecutar",
+                color: "#0077b6",
+                tasks: [
+                    "Aplicar cambios y modificaciones basados específicamente en solicitudes del cliente.",
+                    "Pulir elementos estéticos menores (tipografías, espaciado, colores exactos).",
+                    "Realizar pruebas de usabilidad o validaciones funcionales.",
+                    "Presentar los refinamientos adicionales al cliente para su aprobación.",
+                    "Iniciar reuniones clave de preprocuración con los proveedores del proyecto.",
+                    "Confirmar especificaciones de impresión o troquelado con imprentas.",
+                    "Coordinar parámetros mecánicos con ingenieros o programadores."
+                ]
+            },
+            {
+                id: 7,
+                title: "Producción",
+                meta: "Concluir la producción técnica e integrar archivos listos para lanzamiento o impresión.",
+                groupTop: "Entregar",
+                groupBottom: "Ejecutar",
+                color: "#0077b6",
+                tasks: [
+                    "Para impresión: originales mecánicos, líneas de troquel, arte terminado y archivos digitales listos.",
+                    "Para digital/web: diagramas detallados, integración de contenido final, programación y pruebas.",
+                    "Para movimiento/video: creación de elementos, animación, edición, renderizado final y masterización.",
+                    "Para espacios/entorno: especificaciones técnicas, prototipado final, modelos 3D y coordinación.",
+                    "Para empaque: preparación de archivos de alta resolución y prototipado estructural final."
+                ]
+            },
+            {
+                id: 8,
+                title: "Manufactura / Lanzamiento",
+                meta: "Entregar los activos listos a proveedores calificados y supervisar la salida al aire.",
+                groupTop: "Entregar",
+                groupBottom: "Ejecutar",
+                color: "#0077b6",
+                tasks: [
+                    "Entregar de forma segura todos los archivos técnicos a los proveedores asignados.",
+                    "Supervisar el proceso de preprensa, ajuste de placas y pruebas de impresión.",
+                    "Monitorear el despliegue del código web en servidores productivos o en vivo.",
+                    "Supervisar y gestionar activamente el cumplimiento de estándares por parte de terceros.",
+                    "Establecer la mesa de ayuda o contratos de mantenimiento continuo si aplica."
+                ]
+            },
+            {
+                id: 9,
+                title: "Cierre del Proyecto",
+                meta: "Fortalecer la relación con el cliente, documentar el caso de estudio y liquidar contratos.",
+                groupTop: "Cierre",
+                groupBottom: "Ejecutar",
+                color: "#0077b6",
+                tasks: [
+                    "Realizar reunión de cierre del proyecto (debriefing/entrevista de salida).",
+                    "Analizar las métricas de éxito y fallas detectadas en el transcurso del desarrollo.",
+                    "Archivar sistemáticamente el código, archivos fuente y activos del proyecto.",
+                    "Redactar el estudio de caso técnico y creativo para portafolio de autopromoción.",
+                    "Enviar la factura de liquidación de honorarios del diseñador.",
+                    "Recibir la confirmación del pago final por parte de administración del cliente."
+                ]
+            }
+        ];
+
+        // Claves persistentes
+        const LOCAL_STORAGE_KEY = 'gestor_proyectos_diseno_local';
+        const CUSTOM_FIREBASE_KEY = 'gestor_proyectos_custom_firebase_config';
+        
+        // Capa defensiva para acceso seguro a LocalStorage (Evita crasheos de seguridad en Sandbox/iFrames)
+        const safeStorage = {
+            getItem(key) {
+                try {
+                    return localStorage.getItem(key);
+                } catch (e) {
+                    console.warn("Storage access blocked by browser security.", e);
+                    return null;
+                }
+            },
+            setItem(key, value) {
+                try {
+                    localStorage.setItem(key, value);
+                } catch (e) {
+                    console.warn("Storage write blocked by browser security.", e);
+                }
+            },
+            removeItem(key) {
+                try {
+                    localStorage.removeItem(key);
+                } catch (e) {
+                    console.warn("Storage removal blocked by browser security.", e);
+                }
+            }
+        };
+
+        // Declaración explícita para evitar ReferenceError
+        window.updateCloudIndicator = function(status) {
+            const cloudStatusDot = document.getElementById('cloud-status-dot');
+            const cloudStatusText = document.getElementById('cloud-status-text');
+            const cloudStatusBadge = document.getElementById('cloud-status-badge');
+            
+            if (!cloudStatusDot || !cloudStatusText || !cloudStatusBadge) return;
+
+            if (status === 'syncing') {
+                cloudStatusDot.className = "relative inline-flex rounded-full h-2 w-2 bg-amber-500";
+                cloudStatusText.innerText = "Guardando...";
+                cloudStatusBadge.className = "ml-auto lg:ml-4 flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-700 border border-amber-200";
+            } else if (status === 'synced') {
+                cloudStatusDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
+                cloudStatusText.innerText = safeStorage.getItem(CUSTOM_FIREBASE_KEY) ? "Nube Personal" : "Sincronizado";
+                cloudStatusBadge.className = "ml-auto lg:ml-4 flex items-center gap-1.5 bg-emerald-50 px-3 py-1.5 rounded-full text-[11px] font-bold text-emerald-700 border border-emerald-200";
+            } else if (status === 'local') {
+                cloudStatusDot.className = "relative inline-flex rounded-full h-2 w-2 bg-blue-500";
+                cloudStatusText.innerText = "Local (Navegador)";
+                cloudStatusBadge.className = "ml-auto lg:ml-4 flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full text-[11px] font-bold text-blue-700 border border-blue-200";
+                cloudStatusBadge.title = "Guardando en este navegador.";
+            } else if (status === 'error') {
+                cloudStatusDot.className = "relative inline-flex rounded-full h-2 w-2 bg-rose-500";
+                cloudStatusText.innerText = "Error de Red";
+                cloudStatusBadge.className = "ml-auto lg:ml-4 flex items-center gap-1.5 bg-rose-50 px-3 py-1.5 rounded-full text-[11px] font-bold text-rose-700 border border-rose-200";
+            }
+        }
+
+        let db = null;
+        let auth = null;
+        let appId = 'default-app-id';
+        let isCloudMode = false;
+        let unsubscribeProjects = null;
+
+        // Variables de estado local
+        let currentUser = null;
+        let activeView = 'interactive';
+        let activeStepId = 1;
+        let projects = [];
+        let activeProject = null;
+
+        // Variables auxiliares para edición
+        let stepModalCallback = null;
+        let stepModalTargetId = null;
+        let taskModalCallback = null;
+
+        // Elementos del DOM
+        const toastEl = document.getElementById('toast');
+        const toastMessageEl = document.getElementById('toast-message');
+        const cloudStatusBadge = document.getElementById('cloud-status-badge');
+        const cloudStatusDot = document.getElementById('cloud-status-dot');
+        const cloudStatusText = document.getElementById('cloud-status-text');
+        const projectsListEl = document.getElementById('projects-list');
+        const activeProjectNameEl = document.getElementById('active-project-name');
+
+        // Notificaciones Toast
+        function showToast(message, type = 'info') {
+            toastMessageEl.innerText = message;
+            const container = document.getElementById('toast-icon-container');
+            
+            if (type === 'success') {
+                container.className = "p-1 rounded-lg bg-emerald-500 text-slate-950";
+            } else if (type === 'error') {
+                container.className = "p-1 rounded-lg bg-rose-500 text-white";
+            } else {
+                container.className = "p-1 rounded-lg bg-indigo-500 text-white";
+            }
+
+            toastEl.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+            setTimeout(() => {
+                toastEl.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            }, 3500);
+        }
+
+        // Transforma proyectos viejos o vacíos al nuevo formato de metodología interactiva
+        function migrateProjectToCustomSteps(p) {
+            // Si el proyecto ya cuenta con estructura propia de steps adaptables, la respetamos.
+            if (p.steps && p.steps.length > 0) {
+                p.steps.forEach(step => {
+                    step.tasks = step.tasks.map((task, idx) => {
+                        if (typeof task === 'string') {
+                            return {
+                                id: 't-' + step.id + '-' + idx + '-' + Math.random().toString(36).substr(2, 5),
+                                text: task,
+                                checked: false
+                            };
+                        }
+                        if (!task.id) {
+                            task.id = 't-' + step.id + '-' + idx + '-' + Math.random().toString(36).substr(2, 5);
+                        }
+                        if (task.checked === undefined) {
+                            task.checked = false;
+                        }
+                        return task;
+                    });
+                });
+                return p;
+            }
+
+            // Si es un proyecto viejo o nuevo, clonamos la metodología oficial completa por defecto
+            p.steps = DEFAULT_DESIGN_STEPS.map(step => {
+                const legacyTasksState = p.tasksState ? (p.tasksState[step.id] || {}) : {};
+                return {
+                    id: step.id,
+                    title: step.title,
+                    meta: step.meta,
+                    groupTop: step.groupTop,
+                    groupBottom: step.groupBottom,
+                    color: step.color || "#028090",
+                    tasks: step.tasks.map((taskText, idx) => {
+                        const isChecked = legacyTasksState[idx] === true;
+                        return {
+                            id: 't-' + step.id + '-' + idx + '-' + Math.random().toString(36).substr(2, 5),
+                            text: taskText,
+                            checked: isChecked
+                        };
+                    })
+                };
+            });
+
+            // Limpieza del formato legacy
+            delete p.tasksState;
+            return p;
+        }
+
+        // Modal de Confirmación Personalizado (Reemplaza confirm() nativo de forma estética)
+        function askConfirmation(title, message, onConfirm) {
+            const modal = document.getElementById('custom-confirm-modal');
+            const titleEl = document.getElementById('confirm-modal-title');
+            const messageEl = document.getElementById('confirm-modal-message');
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+            const actionBtn = document.getElementById('confirm-modal-action');
+
+            titleEl.innerText = title;
+            messageEl.innerText = message;
+            modal.classList.remove('hidden');
+
+            const closeModal = () => {
+                modal.classList.add('hidden');
+            };
+
+            cancelBtn.onclick = closeModal;
+            actionBtn.onclick = () => {
+                onConfirm();
+                closeModal();
+            };
+        }
+
+        // Modal para Renombrar Proyectos (Previene bloqueos de prompts nativos en Sandbox)
+        function askRenameProject(projectId, currentName, onConfirm) {
+            const modal = document.getElementById('rename-project-modal');
+            const inputEl = document.getElementById('rename-modal-input');
+            const cancelBtn = document.getElementById('rename-modal-cancel');
+            const actionBtn = document.getElementById('rename-modal-action');
+
+            inputEl.value = currentName;
+            modal.classList.remove('hidden');
+            setTimeout(() => inputEl.focus(), 150);
+
+            const closeModal = () => {
+                modal.classList.add('hidden');
+            };
+
+            cancelBtn.onclick = closeModal;
+            
+            const handleRename = () => {
+                const newName = inputEl.value.trim();
+                if (newName && newName !== currentName) {
+                    onConfirm(newName);
+                }
+                closeModal();
+            };
+
+            actionBtn.onclick = handleRename;
+            inputEl.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    handleRename();
+                }
+            };
+        }
+
+        window.initAppStorage = async function() {
+            const savedCustomConfig = safeStorage.getItem(CUSTOM_FIREBASE_KEY);
+            const platformConfigExists = typeof window.__firebase_config !== 'undefined';
+
+            let configToUse = null;
+
+            if (savedCustomConfig) {
+                try {
+                    configToUse = JSON.parse(savedCustomConfig);
+                    isCloudMode = true;
+                    appId = 'custom-cloud-user';
+                } catch (e) {
+                    console.error("Fallo al procesar configuración personalizada de Firebase:", e);
+                }
+            } else if (platformConfigExists) {
+                try {
+                    configToUse = JSON.parse(window.__firebase_config);
+                    appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
+                    isCloudMode = true;
+                } catch (e) {
+                    console.error("Fallo al procesar configuración de la plataforma:", e);
+                }
+            }
+
+            if (isCloudMode && configToUse) {
+                window.updateCloudIndicator('syncing');
+                try {
+                    const app = initializeApp(configToUse);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+                    
+                    let user;
+                    const initialAuthToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : null;
+                    if (initialAuthToken && !savedCustomConfig) {
+                        const cred = await signInWithCustomToken(auth, initialAuthToken);
+                        user = cred.user;
+                    } else {
+                        const cred = await signInAnonymously(auth);
+                        user = cred.user;
+                    }
+
+                    if (user) {
+                        currentUser = user;
+                        document.getElementById('collaboration-banner-text').innerHTML = 
+                            "<strong>¡Nube conectada!</strong> Tus datos de metodología y tareas están sincronizados en tiempo real entre tus dispositivos.";
+                        subscribeToProjects();
+                    } else {
+                        throw new Error("No se pudo autenticar usuario.");
+                    }
+                } catch (err) {
+                    console.error("Fallo al iniciar Firebase. Forzando modo local:", err);
+                    showToast("No se pudo conectar a Firebase. Forzando modo Local.", "error");
+                    startLocalStorageMode();
+                }
+            } else {
+                startLocalStorageMode();
+            }
+        }
+
+        // Inicialización en modo local
+        function startLocalStorageMode() {
+            isCloudMode = false;
+            const bannerText = document.getElementById('collaboration-banner-text');
+            bannerText.innerHTML = "<strong>Almacenamiento Local Activo.</strong> Tus cambios se guardan en este navegador de forma local. Conéctate a la nube personal para sincronizar.";
+
+            window.updateCloudIndicator('local');
+
+            const localList = getLocalProjects();
+            
+            // Proyecto Demo por defecto si la base de datos está totalmente vacía
+            if (localList.length === 0) {
+                const demoProject = {
+                    id: 'local-demo',
+                    name: 'Proyecto de Marca Corporativa (Demo)',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                };
+                localList.push(migrateProjectToCustomSteps(demoProject));
+                saveLocalProjects(localList);
+            }
+
+            projects = localList.map(p => migrateProjectToCustomSteps(p)).sort((a, b) => b.updatedAt - a.updatedAt);
+            saveLocalProjects(projects);
+            renderProjectsList();
+
+            if (projects.length > 0) {
+                selectProject(projects[0].id);
+            }
+        }
+
+        // Obtener proyectos de LocalStorage con protección
+        function getLocalProjects() {
+            try {
+                const localData = safeStorage.getItem(LOCAL_STORAGE_KEY);
+                return localData ? JSON.parse(localData) : [];
+            } catch (e) {
+                console.error("Error leyendo LocalStorage:", e);
+                return [];
+            }
+        }
+
+        // Guardar proyectos en LocalStorage con protección
+        function saveLocalProjects(projectsArray) {
+            try {
+                safeStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectsArray));
+            } catch (e) {
+                console.error("Error escribiendo en LocalStorage:", e);
+            }
+        }
+
+        function subscribeToProjects() {
+            if (!currentUser || !db) return;
+
+            const projectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'projects');
+
+            unsubscribeProjects = onSnapshot(projectsCollection, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // Reconstrucción del proyecto con migración en la nube
+                    let rawProject = {
+                        id: doc.id,
+                        name: data.name || "Sin nombre",
+                        createdAt: data.createdAt || Date.now(),
+                        updatedAt: data.updatedAt || Date.now(),
+                        steps: data.stepsJson ? JSON.parse(data.stepsJson) : null,
+                        tasksState: data.tasksStateJson ? JSON.parse(data.tasksStateJson) : null
+                    };
+
+                    fetched.push(migrateProjectToCustomSteps(rawProject));
+                });
+
+                projects = fetched.sort((a, b) => b.updatedAt - a.updatedAt);
+                
+                // Si la base de datos de la nube está recién creada e inicializada en 0, autogeneramos un demo
+                if (projects.length === 0) {
+                    createNewProjectWithName("Proyecto de Marca Corporativa (Demo)");
+                    return;
+                }
+
+                renderProjectsList();
+
+                if (projects.length > 0) {
+                    if (!activeProject || !projects.find(p => p.id === activeProject.id)) {
+                        selectProject(projects[0].id);
+                    } else {
+                        const updated = projects.find(p => p.id === activeProject.id);
+                        activeProject = updated;
+                        activeProjectNameEl.innerText = activeProject.name;
+                        updateChecklistProgressUI();
+                        if (activeView === 'interactive') {
+                            renderStepSelectors();
+                            selectStep(activeStepId);
+                        } else {
+                            renderChartView();
+                        }
+                    }
+                }
+                window.updateCloudIndicator('synced');
+            }, (error) => {
+                console.error("Error sincronizando cambios:", error);
+                window.updateCloudIndicator('error');
+                showToast("Fallo de conexión o permisos con tu base de datos.", "error");
+            });
+        }
+
+        // Guardar estado general del proyecto activo de forma segura
+        async function saveActiveProjectState() {
+            if (!activeProject) return;
+
+            activeProject.updatedAt = Date.now();
+
+            if (isCloudMode && currentUser && db) {
+                window.updateCloudIndicator('syncing');
+                try {
+                    const projectDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'projects', activeProject.id);
+                    await setDoc(projectDocRef, {
+                        name: activeProject.name,
+                        updatedAt: activeProject.updatedAt,
+                        stepsJson: JSON.stringify(activeProject.steps)
+                    }, { merge: true });
+                    window.updateCloudIndicator('synced');
+                } catch (err) {
+                    console.error("Error guardando proyecto en la nube:", err);
+                    window.updateCloudIndicator('error');
+                }
+            } else {
+                const idx = projects.findIndex(p => p.id === activeProject.id);
+                if (idx !== -1) {
+                    projects[idx] = activeProject;
+                    saveLocalProjects(projects);
+                }
+                renderProjectsList();
+            }
+        }
+
+        // Crear proyecto con nombre específico
+        async function createNewProjectWithName(name) {
+            const baseProto = {
+                id: 'proto-' + Date.now(),
+                name: name,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            const customProjectData = migrateProjectToCustomSteps(baseProto);
+
+            if (isCloudMode && currentUser && db) {
+                window.updateCloudIndicator('syncing');
+                try {
+                    const projectsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'projects');
+                    await addDoc(projectsCollection, {
+                        name: customProjectData.name,
+                        createdAt: customProjectData.createdAt,
+                        updatedAt: customProjectData.updatedAt,
+                        stepsJson: JSON.stringify(customProjectData.steps)
+                    });
+                    showToast(`Proyecto "${name}" sincronizado en la nube`, "success");
+                } catch (err) {
+                    console.error("Error guardando proyecto en la nube:", err);
+                    window.updateCloudIndicator('error');
+                }
+            } else {
+                customProjectData.id = 'local-' + Date.now();
+                projects.unshift(customProjectData);
+                saveLocalProjects(projects);
+                renderProjectsList();
+                selectProject(customProjectData.id);
+            }
+        }
+
+        // Crear nuevo cliente o proyecto desde formulario
+        window.createNewProject = () => {
+            const input = document.getElementById('newProjectName');
+            const name = input.value.trim();
+            if (!name) return;
+            createNewProjectWithName(name);
+            input.value = "";
+        };
+
+        // Eliminar cliente o proyecto
+        window.deleteProject = (id, name, event) => {
+            event.stopPropagation();
+            
+            askConfirmation(
+                `¿Eliminar "${name}"?`,
+                "Esta acción eliminará todos los progresos de este cliente de forma permanente.",
+                async () => {
+                    if (isCloudMode && currentUser && db) {
+                        window.updateCloudIndicator('syncing');
+                        try {
+                            const projectDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'projects', id);
+                            await deleteDoc(projectDocRef);
+                            showToast(`Proyecto "${name}" eliminado de la nube`, "success");
+                        } catch (err) {
+                            console.error("Error eliminando de Firebase:", err);
+                            showToast("No se pudo completar la operación.", "error");
+                            window.updateCloudIndicator('error');
+                        }
+                    } else {
+                        projects = projects.filter(p => p.id !== id);
+                        saveLocalProjects(projects);
+                        showToast(`Proyecto "${name}" eliminado localmente`, "success");
+                        
+                        if (projects.length > 0) {
+                            selectProject(projects[0].id);
+                        } else {
+                            activeProject = null;
+                            activeProjectNameEl.innerText = "Ningún proyecto activo";
+                            updateChecklistProgressUI();
+                            if (activeView === 'interactive') {
+                                renderStepSelectors();
+                            } else {
+                                renderChartView();
+                            }
+                        }
+                        renderProjectsList();
+                    }
+                }
+            );
+        };
+
+        // Seleccionar proyecto para visualización
+        window.selectProject = (id) => {
+            const found = projects.find(p => p.id === id);
+            if (found) {
+                activeProject = found;
+                activeProjectNameEl.innerText = activeProject.name;
+                updateChecklistProgressUI();
+                
+                // Aseguramos que el activeStepId pertenezca al proyecto activo actual
+                if (activeProject.steps.length > 0) {
+                    if (!activeProject.steps.find(s => s.id === activeStepId)) {
+                        activeStepId = activeProject.steps[0].id;
+                    }
+                }
+
+                if (activeView === 'interactive') {
+                    renderStepSelectors();
+                    selectStep(activeStepId);
+                } else {
+                    renderChartView();
+                }
+                renderProjectsList();
+            }
+        };
+
+        function renderProjectsList() {
+            projectsListEl.innerHTML = "";
+
+            if (projects.length === 0) {
+                projectsListEl.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs bg-white rounded-xl border border-dashed border-slate-200">
+                        <i data-lucide="folder-plus" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+                        No hay proyectos activos.<br>Crea uno arriba.
+                    </div>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            projects.forEach(p => {
+                const isActive = activeProject && activeProject.id === p.id;
+                
+                // Calcular progreso dinámico real de las subtareas
+                let totalTasks = 0;
+                let completedTasks = 0;
+                p.steps.forEach(step => {
+                    totalTasks += step.tasks.length;
+                    completedTasks += step.tasks.filter(t => t.checked).length;
+                });
+                const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                const item = document.createElement('div');
+                item.onclick = () => selectProject(p.id);
+                item.className = `p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${isActive ? 'bg-[#028090] text-white border-[#028090] shadow-sm' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'}`;
+                
+                const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                item.innerHTML = `
+                    <div class="min-w-0 flex-1 pr-2">
+                        <p class="text-xs font-bold truncate ${isActive ? 'text-white' : 'text-slate-800'}">${p.name}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[9px] font-bold ${isActive ? 'text-teal-100' : 'text-slate-400'} uppercase">Progreso: ${pct}%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <div class="w-12 bg-slate-100 rounded-full h-1.5 overflow-hidden ${isActive ? 'bg-teal-900' : 'bg-slate-100'} mr-1">
+                            <div class="h-full rounded-full ${isActive ? 'bg-white' : 'bg-[#028090]'}" style="width: ${pct}%"></div>
+                        </div>
+                        
+                        <button onclick="openRenameProjectModal('${p.id}', '${escapedName}', event)" class="p-1 rounded-md text-slate-400 hover:text-[#028090] hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 ${isActive ? 'hover:bg-teal-800 text-teal-200 hover:text-white' : ''}" title="Renombrar">
+                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        </button>
+
+                        <button onclick="deleteProject('${p.id}', '${escapedName}', event)" class="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 ${isActive ? 'hover:bg-teal-800 text-teal-200 hover:text-white' : ''}">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+                projectsListEl.appendChild(item);
+            });
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        // Marcar/Desmarcar estado de tareas
+        window.toggleTask = async (stepId, taskId, isChecked) => {
+            if (!activeProject) return;
+
+            const step = activeProject.steps.find(s => s.id === stepId);
+            if (step) {
+                const task = step.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.checked = isChecked;
+                }
+            }
+
+            updateChecklistProgressUI();
+            updateStepStatusHeader(stepId);
+            await saveActiveProjectState();
+        };
+
+        // Resetear todo el checklist del proyecto activo
+        window.resetActiveProjectChecklist = () => {
+            if (!activeProject) return;
+
+            askConfirmation(
+                `¿Reiniciar todo el progreso?`,
+                `Esta acción limpiará absolutamente todas las casillas marcadas para "${activeProject.name}".`,
+                async () => {
+                    activeProject.steps.forEach(step => {
+                        step.tasks.forEach(t => t.checked = false);
+                    });
+                    updateChecklistProgressUI();
+                    if (activeView === 'interactive') {
+                        renderStepSelectors();
+                        selectStep(activeStepId);
+                    } else {
+                        renderChartView();
+                    }
+                    await saveActiveProjectState();
+                    showToast("Progreso del proyecto reiniciado", "success");
+                }
+            );
+        };
+
+        // Renderiza el navegador de pasos de la metodología del proyecto activo
+        window.renderStepSelectors = () => {
+            const container = document.getElementById('step-selector-container');
+            container.innerHTML = "";
+
+            if (!activeProject || activeProject.steps.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No hay pasos configurados en este proyecto.
+                    </div>
+                `;
+                return;
+            }
+
+            activeProject.steps.forEach((step, index) => {
+                const btn = document.createElement('button');
+                btn.id = `selector-step-${step.id}`;
+                btn.onclick = () => selectStep(step.id);
+                btn.className = "w-full text-left p-2.5 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-between group";
+                
+                const totalCount = step.tasks.length;
+                const completedCount = step.tasks.filter(t => t.checked).length;
+                const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="w-6 h-6 shrink-0 bg-slate-100 text-slate-800 rounded-full flex items-center justify-center font-bold text-[11px] group-hover:bg-[#0077b6] group-hover:text-white transition-all">${index + 1}</span>
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-slate-800 truncate leading-tight">${step.title}</p>
+                            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${step.groupTop || "Proceso"}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <span class="text-[9px] font-extrabold text-slate-500">${pct}%</span>
+                        <div class="w-1.5 h-1.5 rounded-full ${pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-amber-500' : 'bg-slate-200'}"></div>
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // Cambiar selección de paso para mostrar su checklist detallado
+        window.selectStep = (id) => {
+            if (!activeProject) return;
+            
+            activeStepId = id;
+            const step = activeProject.steps.find(s => s.id === id);
+            if (!step) {
+                if (activeProject.steps.length > 0) {
+                    selectStep(activeProject.steps[0].id);
+                }
+                return;
+            }
+            
+            activeProject.steps.forEach(s => {
+                const el = document.getElementById(`selector-step-${s.id}`);
+                if (el) {
+                    if (s.id === id) {
+                        el.className = "w-full text-left p-2.5 rounded-lg border border-[#028090]/30 bg-[#f0f7f8] border-l-4 border-l-[#028090] transition-all flex items-center justify-between group";
+                    } else {
+                        el.className = "w-full text-left p-2.5 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-between group";
+                    }
+                }
+            });
+
+            const indexReal = activeProject.steps.findIndex(s => s.id === id) + 1;
+            document.getElementById('active-step-num').innerText = indexReal;
+            document.getElementById('active-step-title').innerText = step.title;
+            document.getElementById('active-step-subtitle').innerText = `Fase superior: ${step.groupTop || "General"} | Secuencia: ${step.groupBottom || "General"}`;
+            document.getElementById('active-step-goal').innerText = step.meta || "Sin meta clave especificada.";
+
+            const checklistContainer = document.getElementById('active-checklist-container');
+            checklistContainer.innerHTML = "";
+
+            if (step.tasks.length === 0) {
+                checklistContainer.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs italic">
+                        No hay tareas en este paso. Añade una tarea abajo para comenzar.
+                    </div>
+                `;
+            } else {
+                step.tasks.forEach((task, index) => {
+                    const label = document.createElement('div');
+                    label.className = `flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-move ${task.checked ? 'bg-emerald-50/40 border-emerald-100 text-slate-500' : 'bg-slate-50/50 border-slate-150 hover:bg-slate-100/70 text-slate-800'}`;
+                    label.setAttribute('draggable', 'true');
+                    label.setAttribute('data-task-id', task.id);
+                    
+                    label.innerHTML = `
+                        <label class="flex items-start gap-3 flex-grow cursor-pointer pr-2 min-w-0">
+                            <input type="checkbox" onchange="toggleTask(${step.id}, '${task.id}', this.checked)" ${task.checked ? 'checked' : ''} 
+                                   class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                            <span class="text-xs leading-relaxed break-words min-w-0 ${task.checked ? 'line-through opacity-70' : 'font-medium'}">${task.text}</span>
+                        </label>
+                        <!-- Controles de reordenación y edición de la tarea -->
+                        <div class="flex items-center gap-1 shrink-0 bg-white/80 p-1 rounded-md border border-slate-200 shadow-xs">
+                            <button onclick="moveTask(${step.id}, '${task.id}', 'up')" class="p-1 rounded text-slate-400 hover:text-[#028090] hover:bg-slate-50 transition-colors" title="Subir orden">
+                                <i data-lucide="arrow-up" class="w-3 h-3"></i>
+                            </button>
+                            <button onclick="moveTask(${step.id}, '${task.id}', 'down')" class="p-1 rounded text-slate-400 hover:text-[#028090] hover:bg-slate-50 transition-colors" title="Bajar orden">
+                                <i data-lucide="arrow-down" class="w-3 h-3"></i>
+                            </button>
+                            <button onclick="openTaskEditModal(${step.id}, '${task.id}')" class="p-1 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Editar texto">
+                                <i data-lucide="pencil" class="w-3 h-3"></i>
+                            </button>
+                            <button onclick="deleteTask(${step.id}, '${task.id}')" class="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Eliminar tarea">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    `;
+                    checklistContainer.appendChild(label);
+                });
+
+                setupDragAndDrop(checklistContainer, step.id);
+            }
+
+            updateStepStatusHeader(step.id);
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // Soporte de Drag and Drop fluido para arrastrar y ordenar tareas
+        function setupDragAndDrop(container, stepId) {
+            let draggedItem = null;
+
+            container.addEventListener('dragstart', (e) => {
+                draggedItem = e.target.closest('[draggable="true"]');
+                if (draggedItem) {
+                    draggedItem.classList.add('dragging');
+                }
+            });
+
+            container.addEventListener('dragend', async () => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    
+                    // Recalcular el orden basándose en el DOM
+                    const domElements = [...container.querySelectorAll('[draggable="true"]')];
+                    const step = activeProject.steps.find(s => s.id === stepId);
+                    if (step) {
+                        const newTasksOrder = [];
+                        domElements.forEach(el => {
+                            const taskId = el.getAttribute('data-task-id');
+                            const foundTask = step.tasks.find(t => t.id === taskId);
+                            if (foundTask) {
+                                newTasksOrder.push(foundTask);
+                            }
+                        });
+                        step.tasks = newTasksOrder;
+                        await saveActiveProjectState();
+                        updateChecklistProgressUI();
+                    }
+                }
+                draggedItem = null;
+            });
+
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                if (afterElement == null) {
+                    container.appendChild(draggedItem);
+                } else {
+                    container.insertBefore(draggedItem, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function getCompletedTasksCount(stepId) {
+            if (!activeProject) return 0;
+            const step = activeProject.steps.find(s => s.id === stepId);
+            if (!step) return 0;
+            return step.tasks.filter(t => t.checked).length;
+        }
+
+        function updateStepStatusHeader(stepId) {
+            if (!activeProject) return;
+            const step = activeProject.steps.find(s => s.id === stepId);
+            if (!step) return;
+
+            const total = step.tasks.length;
+            const completed = step.tasks.filter(t => t.checked).length;
+            const badge = document.getElementById('active-step-status');
+
+            if (total === 0) {
+                badge.innerText = "Sin tareas";
+                badge.className = "px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-extrabold rounded-full border border-slate-200 tracking-wider uppercase";
+            } else if (completed === 0) {
+                badge.innerText = "No Iniciado";
+                badge.className = "px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-extrabold rounded-full border border-slate-200 tracking-wider uppercase";
+            } else if (completed === total) {
+                badge.innerText = "Completado";
+                badge.className = "px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full border border-emerald-200 tracking-wider uppercase";
+            } else {
+                badge.innerText = `En progreso (${completed}/${total})`;
+                badge.className = "px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-extrabold rounded-full border border-amber-200 tracking-wider uppercase";
+            }
+        }
+
+        function updateChecklistProgressUI() {
+            if (!activeProject) {
+                document.getElementById('progress-percent').innerText = "0%";
+                document.getElementById('progress-fill').style.width = "0%";
+                return;
+            }
+
+            let totalTasks = 0;
+            let completedTasks = 0;
+
+            activeProject.steps.forEach(step => {
+                totalTasks += step.tasks.length;
+                completedTasks += step.tasks.filter(t => t.checked).length;
+            });
+
+            const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+        }
+
+        // Añadir una nueva tarea al paso activo actual
+        window.addNewTaskToActiveStep = async () => {
+            if (!activeProject) return;
+            const input = document.getElementById('newTaskInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const step = activeProject.steps.find(s => s.id === activeStepId);
+            if (step) {
+                const newTask = {
+                    id: 't-' + step.id + '-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+                    text: text,
+                    checked: false
+                };
+                step.tasks.push(newTask);
+                input.value = "";
+                
+                selectStep(activeStepId);
+                updateChecklistProgressUI();
+                await saveActiveProjectState();
+                showToast("Nueva tarea añadida", "success");
+            }
+        };
+
+        // Eliminar una tarea individual del paso
+        window.deleteTask = (stepId, taskId) => {
+            if (!activeProject) return;
+            
+            askConfirmation(
+                "¿Eliminar tarea?",
+                "Esta tarea se quitará permanentemente del paso actual.",
+                async () => {
+                    const step = activeProject.steps.find(s => s.id === stepId);
+                    if (step) {
+                        step.tasks = step.tasks.filter(t => t.id !== taskId);
+                        selectStep(activeStepId);
+                        updateChecklistProgressUI();
+                        await saveActiveProjectState();
+                        showToast("Tarea eliminada", "info");
+                    }
+                }
+            );
+        };
+
+        // Reordenar tareas dentro del paso (subir/bajar)
+        window.moveTask = async (stepId, taskId, direction) => {
+            if (!activeProject) return;
+            const step = activeProject.steps.find(s => s.id === stepId);
+            if (!step) return;
+
+            const idx = step.tasks.findIndex(t => t.id === taskId);
+            if (idx === -1) return;
+
+            if (direction === 'up' && idx > 0) {
+                const temp = step.tasks[idx];
+                step.tasks[idx] = step.tasks[idx - 1];
+                step.tasks[idx - 1] = temp;
+            } else if (direction === 'down' && idx < step.tasks.length - 1) {
+                const temp = step.tasks[idx];
+                step.tasks[idx] = step.tasks[idx + 1];
+                step.tasks[idx + 1] = temp;
+            } else {
+                return; // Fuera de límites
+            }
+
+            selectStep(activeStepId);
+            await saveActiveProjectState();
+        };
+
+        // Abrir modal de edición de tarea
+        window.openTaskEditModal = (stepId, taskId) => {
+            if (!activeProject) return;
+            const step = activeProject.steps.find(s => s.id === stepId);
+            if (!step) return;
+            const task = step.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const modal = document.getElementById('task-modal');
+            const input = document.getElementById('taskModalInput');
+            const saveBtn = document.getElementById('task-modal-save');
+
+            input.value = task.text;
+            modal.classList.remove('hidden');
+
+            taskModalCallback = async () => {
+                const updatedText = input.value.trim();
+                if (updatedText && updatedText !== task.text) {
+                    task.text = updatedText;
+                    selectStep(activeStepId);
+                    await saveActiveProjectState();
+                    showToast("Tarea editada", "success");
+                }
+                closeTaskModal();
+            };
+
+            saveBtn.onclick = taskModalCallback;
+        };
+
+        window.closeTaskModal = () => {
+            document.getElementById('task-modal').classList.add('hidden');
+            taskModalCallback = null;
+        };
+
+        // Abrir modal para crear o editar un paso completo
+        window.openStepModal = (stepId = null) => {
+            const modal = document.getElementById('step-modal');
+            const titleInput = document.getElementById('stepModalTitle');
+            const metaInput = document.getElementById('stepModalMeta');
+            const groupTopInput = document.getElementById('stepModalGroupTop');
+            const groupBottomInput = document.getElementById('stepModalGroupBottom');
+            const titleModal = document.getElementById('step-modal-title');
+            const saveBtn = document.getElementById('step-modal-save');
+
+            if (stepId) {
+                // Editar Paso existente
+                const step = activeProject.steps.find(s => s.id === stepId);
+                if (!step) return;
+
+                titleModal.innerText = "Editar Paso de la Metodología";
+                titleInput.value = step.title;
+                metaInput.value = step.meta;
+                groupTopInput.value = step.groupTop || "";
+                groupBottomInput.value = step.groupBottom || "";
+
+                stepModalCallback = async () => {
+                    step.title = titleInput.value.trim();
+                    step.meta = metaInput.value.trim();
+                    step.groupTop = groupTopInput.value.trim();
+                    step.groupBottom = groupBottomInput.value.trim();
+
+                    renderStepSelectors();
+                    selectStep(activeStepId);
+                    await saveActiveProjectState();
+                    showToast("Paso actualizado", "success");
+                    closeStepModal();
+                };
+            } else {
+                // Crear Nuevo Paso
+                titleModal.innerText = "Añadir Nuevo Paso";
+                titleInput.value = "";
+                metaInput.value = "";
+                groupTopInput.value = "Desarrollar";
+                groupBottomInput.value = "Idear";
+
+                stepModalCallback = async () => {
+                    const title = titleInput.value.trim();
+                    if (!title) return;
+
+                    const newStepId = Date.now();
+                    const newStep = {
+                        id: newStepId,
+                        title: title,
+                        meta: metaInput.value.trim(),
+                        groupTop: groupTopInput.value.trim() || "Proceso",
+                        groupBottom: groupBottomInput.value.trim() || "Ejecutar",
+                        color: "#028090",
+                        tasks: []
+                    };
+
+                    activeProject.steps.push(newStep);
+                    activeStepId = newStepId;
+
+                    renderStepSelectors();
+                    selectStep(activeStepId);
+                    updateChecklistProgressUI();
+                    await saveActiveProjectState();
+                    showToast("Nuevo paso añadido", "success");
+                    closeStepModal();
+                };
+            }
+
+            modal.classList.remove('hidden');
+            saveBtn.onclick = stepModalCallback;
+        };
+
+        window.closeStepModal = () => {
+            document.getElementById('step-modal').classList.add('hidden');
+            stepModalCallback = null;
+        };
+
+        // Atajos de edición para el paso actualmente activo
+        window.triggerActiveStepEdit = () => {
+            if (!activeProject || !activeStepId) return;
+            window.openStepModal(activeStepId);
+        };
+
+        // Eliminar el paso activo por completo de la metodología de este proyecto
+        window.triggerActiveStepDelete = () => {
+            if (!activeProject || !activeStepId) return;
+            const step = activeProject.steps.find(s => s.id === activeStepId);
+            if (!step) return;
+
+            askConfirmation(
+                `¿Eliminar el paso "${step.title}"?`,
+                "Esta acción quitará el paso de la metodología de este proyecto y borrará todas sus tareas asociadas.",
+                async () => {
+                    activeProject.steps = activeProject.steps.filter(s => s.id !== activeStepId);
+                    
+                    // Elegir un nuevo paso activo si quedan
+                    if (activeProject.steps.length > 0) {
+                        activeStepId = activeProject.steps[0].id;
+                    } else {
+                        activeStepId = null;
+                    }
+
+                    renderStepSelectors();
+                    if (activeStepId) {
+                        selectStep(activeStepId);
+                    } else {
+                        // Limpiar interfaz si no quedan pasos
+                        document.getElementById('active-step-num').innerText = "-";
+                        document.getElementById('active-step-title').innerText = "Sin pasos";
+                        document.getElementById('active-step-subtitle').innerText = "Añade un paso para comenzar.";
+                        document.getElementById('active-checklist-container').innerHTML = "";
+                    }
+                    
+                    updateChecklistProgressUI();
+                    await saveActiveProjectState();
+                    showToast("Paso de metodología eliminado", "info");
+                }
+            );
+        };
+
+        // Reordenar pasos metodológicos
+        window.moveActiveStep = async (direction) => {
+            if (!activeProject || !activeStepId) return;
+            const idx = activeProject.steps.findIndex(s => s.id === activeStepId);
+            if (idx === -1) return;
+
+            if (direction === 'up' && idx > 0) {
+                const temp = activeProject.steps[idx];
+                activeProject.steps[idx] = activeProject.steps[idx - 1];
+                activeProject.steps[idx - 1] = temp;
+            } else if (direction === 'down' && idx < activeProject.steps.length - 1) {
+                const temp = activeProject.steps[idx];
+                activeProject.steps[idx] = activeProject.steps[idx + 1];
+                activeProject.steps[idx + 1] = temp;
+            } else {
+                return;
+            }
+
+            renderStepSelectors();
+            selectStep(activeStepId);
+            await saveActiveProjectState();
+            showToast("Orden de pasos actualizado", "success");
+        };
+
+        // Agrupa pasos consecutivos que comparten un mismo campo para representarlos con spans correctos
+        function getConsecutiveGroups(steps, key) {
+            const groups = [];
+            if (!steps || steps.length === 0) return groups;
+            
+            let currentVal = steps[0][key] || "General";
+            let startIdx = 0;
+            let count = 1;
+            
+            for (let i = 1; i < steps.length; i++) {
+                const val = steps[i][key] || "General";
+                if (val === currentVal) {
+                    count++;
+                } else {
+                    groups.push({ name: currentVal, span: count, startIndex: startIdx });
+                    currentVal = val;
+                    startIdx = i;
+                    count = 1;
+                }
+            }
+            groups.push({ name: currentVal, span: count, startIndex: startIdx });
+            return groups;
+        }
+
+        // Genera y dibuja la matriz visual de etapas basándose en los pasos editables del proyecto activo
+        window.renderChartView = () => {
+            const container = document.getElementById('chart-matrix-container');
+            container.innerHTML = "";
+
+            if (!activeProject || activeProject.steps.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 text-sm italic">
+                        No hay pasos creados en este proyecto. Ve a la pestaña "PROGRESO" para añadir pasos y tareas.
+                    </div>
+                `;
+                return;
+            }
+
+            const steps = activeProject.steps;
+            const totalColumns = steps.length;
+
+            // Creación de la estructura interna fluida por CSS Grid dinámico
+            const gridStyle = `display: grid; grid-template-columns: repeat(${totalColumns}, minmax(180px, 1fr)); gap: 1rem;`;
+
+            // 1. Brackets superiores (Fases de entrega)
+            const topGroups = getConsecutiveGroups(steps, 'groupTop');
+            let topBracketsHTML = `<div class="mb-3 text-center" style="${gridStyle}">`;
+            topGroups.forEach(g => {
+                topBracketsHTML += `
+                    <div class="relative" style="grid-column: span ${g.span};">
+                        <div class="text-[#A467C7] text-[10px] font-extrabold tracking-widest uppercase py-1 border-t-2 border-x-2 border-[#A467C7] rounded-t-md mx-3 truncate" title="${g.name}">
+                            ${g.name}
+                        </div>
+                    </div>
+                `;
+            });
+            topBracketsHTML += `</div>`;
+
+            // 2. Círculos numéricos de los pasos
+            let stepNumbersHTML = `<div class="mb-4" style="${gridStyle}">`;
+            steps.forEach((step, idx) => {
+                stepNumbersHTML += `
+                    <div class="flex justify-center">
+                        <div class="w-12 h-12 rounded-full bg-[#0077b6] text-white flex items-center justify-center font-bold text-xl shadow-md">
+                            ${idx + 1}
+                        </div>
+                    </div>
+                `;
+            });
+            stepNumbersHTML += `</div>`;
+
+            // 3. Títulos de las fases en burbujas celestes
+            let stepTitlesHTML = `<div class="mb-6" style="${gridStyle}">`;
+            steps.forEach(step => {
+                stepTitlesHTML += `
+                    <div class="px-1 text-center">
+                        <span class="block bg-sky-50 text-[#0077b6] text-[9px] font-extrabold py-2 px-1 rounded uppercase tracking-wider leading-relaxed border border-sky-100 truncate" title="${step.title}">
+                            ${step.title}
+                        </span>
+                    </div>
+                `;
+            });
+            stepTitlesHTML += `</div>`;
+
+            // 4. Listados de tareas detalladas por columna
+            let stepTasksHTML = `<div class="border-r border-l border-slate-200 items-stretch" style="${gridStyle}">`;
+            steps.forEach((step, stepIdx) => {
+                let listItems = "";
+                if (step.tasks.length === 0) {
+                    listItems = `<li class="text-slate-400 italic text-[10px] list-none">Sin requerimientos</li>`;
+                } else {
+                    step.tasks.forEach(task => {
+                        listItems += `
+                            <li class="flex gap-1.5 items-start">
+                                <span class="text-emerald-500 font-bold shrink-0">${task.checked ? '✓' : '•'}</span>
+                                <span class="${task.checked ? 'line-through text-slate-400 opacity-60' : ''}">${task.text}</span>
+                            </li>
+                        `;
+                    });
+                }
+                
+                stepTasksHTML += `
+                    <div class="p-3 text-[10px] text-slate-700 leading-relaxed space-y-2 border-r border-slate-200 h-full step-card ${stepIdx === steps.length - 1 ? 'border-r-0' : ''}" data-step="${step.id}">
+                        <ul class="space-y-2 pl-1 list-none">
+                            ${listItems}
+                        </ul>
+                    </div>
+                `;
+            });
+            stepTasksHTML += `</div>`;
+
+            // 5. Bloques de Metas (Verdes)
+            let stepGoalsHTML = `<div class="mt-4" style="${gridStyle}">`;
+            steps.forEach(step => {
+                stepGoalsHTML += `
+                    <div class="bg-[#2BE562] text-slate-950 p-2.5 rounded-md shadow-xs text-center flex flex-col justify-between">
+                        <p class="text-[9px] uppercase tracking-wider font-extrabold opacity-85">Meta clave:</p>
+                        <p class="text-[10px] font-bold mt-1 text-slate-900 leading-normal line-clamp-3" title="${step.meta}">
+                            ${step.meta || "Bases de la fase."}
+                        </p>
+                    </div>
+                `;
+            });
+            stepGoalsHTML += `</div>`;
+
+            // 6. Agrupaciones de pié (Fase de diseño)
+            const bottomGroups = getConsecutiveGroups(steps, 'groupBottom');
+            let bottomFooterHTML = `<div class="mt-6 items-center" style="${gridStyle}">`;
+            bottomGroups.forEach(g => {
+                bottomFooterHTML += `
+                    <div style="grid-column: span ${g.span};">
+                        <div class="flex items-center justify-between px-3 border-b-2 border-slate-700 pb-1.5 mx-2">
+                            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-700"></i>
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-700 truncate">${g.name}</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-700"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            bottomFooterHTML += `</div>`;
+
+            // Unir y pintar en pantalla
+            container.innerHTML = `
+                <div class="min-w-[1450px]">
+                    ${topBracketsHTML}
+                    ${stepNumbersHTML}
+                    ${stepTitlesHTML}
+                    ${stepTasksHTML}
+                    ${stepGoalsHTML}
+                    ${bottomFooterHTML}
+                </div>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // Alternar visualizaciones generales (Matriz vs Checklist)
+        window.switchView = (viewName) => {
+            activeView = viewName;
+            const chartView = document.getElementById('view-chart');
+            const interactiveView = document.getElementById('view-interactive');
+            
+            const btnChart = document.getElementById('btn-view-chart');
+            const btnInteractive = document.getElementById('btn-view-interactive');
+
+            if (viewName === 'chart') {
+                chartView.classList.remove('hidden');
+                interactiveView.classList.add('hidden');
+                
+                btnChart.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-900 shadow-sm transition-all flex items-center justify-center gap-1.5";
+                btnInteractive.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5";
+                
+                renderChartView();
+            } else {
+                chartView.classList.add('hidden');
+                interactiveView.classList.remove('hidden');
+                
+                btnChart.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5";
+                btnInteractive.className = "flex-1 md:flex-initial px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-slate-900 shadow-sm transition-all flex items-center justify-center gap-1.5";
+                
+                renderStepSelectors();
+                selectStep(activeStepId);
+            }
+        };
+
+        // Configuración de búsqueda inteligente sobre la matriz o el panel
+        function setupSearch() {
+            const input = document.getElementById('searchInput');
+            if (!input) return;
+            input.addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase().trim();
+                const stepCards = document.querySelectorAll('.step-card');
+
+                if (query === "") {
+                    stepCards.forEach(card => {
+                        card.classList.remove('bg-yellow-50/70', 'ring-2', 'ring-yellow-400', 'opacity-40');
+                        card.classList.add('opacity-100');
+                    });
+                    return;
+                }
+
+                stepCards.forEach(card => {
+                    const text = card.innerText.toLowerCase();
+                    const matched = text.includes(query);
+
+                    if (matched) {
+                        card.classList.add('bg-yellow-50/70', 'ring-2', 'ring-yellow-400');
+                        card.classList.remove('opacity-40');
+                    } else {
+                        card.classList.remove('bg-yellow-50/70', 'ring-2', 'ring-yellow-400');
+                        card.classList.add('opacity-40');
+                    }
+                });
+            });
+        }
+
+        // Abrir y cerrar modal de Ajustes de Nube
+        window.toggleCloudModal = (isOpen) => {
+            const modal = document.getElementById('cloud-config-modal');
+            if (isOpen) {
+                const saved = safeStorage.getItem(CUSTOM_FIREBASE_KEY);
+                document.getElementById('firebaseConfigInput').value = saved ? saved : '';
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        };
+
+        // Guardar configuración de Firebase Personal
+        window.saveCustomCloudConfig = () => {
+            const value = document.getElementById('firebaseConfigInput').value.trim();
+            if (!value) {
+                showToast("Por favor ingresa un JSON válido", "error");
+                return;
+            }
+
+            try {
+                JSON.parse(value);
+                safeStorage.setItem(CUSTOM_FIREBASE_KEY, value);
+                toggleCloudModal(false);
+                showToast("Configuración guardada. Recargando para conectar...", "success");
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            } catch (e) {
+                showToast("El texto no es un objeto JSON válido.", "error");
+            }
+        };
+
+        // Borrar configuración y volver a local
+        window.clearCustomCloudConfig = () => {
+            safeStorage.removeItem(CUSTOM_FIREBASE_KEY);
+            toggleCloudModal(false);
+            showToast("Nube desconectada. Recargando a Modo Local...", "info");
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
+        };
+
+        // Control móvil de apertura/cierre de barra de navegación lateral
+        window.toggleSidebar = () => {
+            const sidebar = document.getElementById('project-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        };
+
+        // Ejecutar renombrado desde la barra de progreso del proyecto activo
+        window.triggerActiveProjectRename = () => {
+            if (!activeProject) {
+                showToast("Primero selecciona o crea un proyecto activo.", "error");
+                return;
+            }
+            window.openRenameProjectModal(activeProject.id, activeProject.name);
+        };
+
+        // Disparar modal de cambio de nombre
+        window.openRenameProjectModal = (projectId, currentName, event) => {
+            if (event) event.stopPropagation();
+
+            askRenameProject(projectId, currentName, async (newName) => {
+                if (isCloudMode && currentUser && db) {
+                    window.updateCloudIndicator('syncing');
+                    try {
+                        const projectDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'projects', projectId);
+                        await setDoc(projectDocRef, {
+                            name: newName,
+                            updatedAt: Date.now()
+                        }, { merge: true });
+                        showToast(`Proyecto renombrado a "${newName}"`, "success");
+                    } catch (err) {
+                        console.error("Error renombrando en la nube:", err);
+                        showToast("Fallo al guardar el cambio en la nube.", "error");
+                        window.updateCloudIndicator('error');
+                    }
+                } else {
+                    const idx = projects.findIndex(p => p.id === projectId);
+                    if (idx !== -1) {
+                        projects[idx].name = newName;
+                        projects[idx].updatedAt = Date.now();
+                        saveLocalProjects(projects);
+                        
+                        if (activeProject && activeProject.id === projectId) {
+                            activeProject.name = newName;
+                            activeProjectNameEl.innerText = newName;
+                        }
+
+                        renderProjectsList();
+                        showToast(`Proyecto renombrado a "${newName}" localmente`, "success");
+                    }
+                }
+            });
+        };
+
+        // Inicialización tras cargar ventana
+        window.onload = function() {
+            if (window.lucide) window.lucide.createIcons();
+            window.initAppStorage();
+            setupSearch();
+            
+            // Forzar vista por defecto interactiva y limpia al iniciar
+            switchView('interactive');
+        };
+
+    </script>
+</body>
+</html>
